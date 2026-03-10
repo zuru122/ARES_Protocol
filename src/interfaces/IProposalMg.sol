@@ -10,6 +10,7 @@ interface IProposalMg {
 
     //Handles the status of a proposal state.
     enum ProposalStatus {
+        PENDING,
         QUEUED,
         EXECUTED,
         CANCELED
@@ -48,7 +49,7 @@ interface IProposalMg {
         uint256 value,
         string calldata description,
         ProposalType proposalType
-    ) external returns (bytes32);
+    ) external payable returns (bytes32);
 
     function getProposal(bytes32 _proposalId) external view returns (Proposal memory);
 

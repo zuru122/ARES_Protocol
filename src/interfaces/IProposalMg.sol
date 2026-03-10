@@ -2,14 +2,13 @@
 pragma solidity ^0.8.23;
 
 interface IProposalMg {
-
     enum ProposalType {
         TRANSFER,
         CALL,
         UPGRADE
     }
 
-    //Handles the status of a proposal state. 
+    //Handles the status of a proposal state.
     enum ProposalStatus {
         QUEUED,
         EXECUTED,
@@ -22,7 +21,7 @@ interface IProposalMg {
         bytes data;
         uint256 value;
         address proposerAddr;
-        uint256 timeCreated;        
+        uint256 timeCreated;
         string description;
         ProposalStatus status;
         ProposalType proposalType;
@@ -51,12 +50,11 @@ interface IProposalMg {
         ProposalType proposalType
     ) external returns (bytes32);
 
-    function getProposal(bytes32 proposalId) external view returns(Proposal memory);
+    function getProposal(bytes32 proposalId) external view returns (Proposal memory);
 
-    function cancelProposal(bytes32 proposalId) external;   
+    function cancelProposal(bytes32 proposalId) external;
 
     function queueProposal(bytes32 proposalId) external;
 
-    function isReadyToQueue(bytes32 proposalId) external view returns (bool);  
-   
+    function isReadyToQueue(bytes32 proposalId) external view returns (bool);
 }

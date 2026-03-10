@@ -50,11 +50,11 @@ interface IProposalMg {
         ProposalType proposalType
     ) external returns (bytes32);
 
-    function getProposal(bytes32 proposalId) external view returns (Proposal memory);
+    function getProposal(bytes32 _proposalId) external view returns (Proposal memory);
 
-    function cancelProposal(bytes32 proposalId) external;
+    function cancelProposal(bytes32 _proposalId) external;
 
-    function queueProposal(bytes32 proposalId) external;
+    function queueProposal(bytes32 _proposalId) external;
 
-    function isReadyToQueue(bytes32 proposalId) external view returns (bool);
+    function isReadyToQueue(bytes32 _proposalId) external view returns (bool);
 }

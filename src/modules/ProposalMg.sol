@@ -6,6 +6,7 @@ import {AttackGuards} from "../libraries/AttackGuards.sol";
 import {SignatureAuth} from "../libraries/SignatureAuth.sol";
 
 contract ProposalMg is IProposalMg {
+    AttackGuards.Snapshot private _snapshot;
 
     mapping(bytes32 => Proposal) public proposals;
     mapping(address => uint256) private _nonces;
@@ -34,18 +35,11 @@ contract ProposalMg is IProposalMg {
         string calldata _description,
         ProposalType _proposalType
     ) external payable returns (bytes32) {
-   
         require(msg.value >= PROPOSAL_DEPOSIT, "insufficient deposit");
 
-        bytes32 proposalId = keccak256(abi.encodePacked(
-            msg.sender,
-            block.timestamp,
-            _targetAddr,
-            _data,
-            _value,
-            _description,
-            _proposalType
-        ));
+        bytes32 proposalId = keccak256(
+            abi.encodePacked(msg.sender, block.timestamp, _targetAddr, _data, _value, _description, _proposalType)
+        );
 
         require(proposals[proposalId].timeCreated == 0, "proposal already exists");
 
@@ -63,30 +57,37 @@ contract ProposalMg is IProposalMg {
             proposalType: _proposalType
         });
 
-        emit ProposalCreated(
-            proposalId,
-            msg.sender,
-            _targetAddr,
-            _value,
-            _description,
-            _proposalType
-        );
+        AttackGuards.recordSnapshot(_snapshot, proposalId);
+
+        emit ProposalCreated(proposalId, msg.sender, _targetAddr, _value, _description, _proposalType);
 
         return proposalId;
     }
 
-    function queueProposal(bytes32 _proposalId) external {
-    
+    function queueProposal(
+        bytes32 _proposalId,
+        address[] calldata _signers,
+        bytes[] calldata _signatures,
+        uint256[] calldata _signerNonces,
+        uint256 _deadline
+    ) external {
         require(proposals[_proposalId].timeCreated != 0, "proposal does not exist");
 
         Proposal storage proposal = proposals[_proposalId];
 
         require(proposal.status == ProposalStatus.PENDING, "proposal is not pending");
 
+        require(block.timestamp >= proposal.timeCreated + COMMIT_DELAY, "still in commit phase");
+
         require(
-            block.timestamp >= proposal.timeCreated + COMMIT_DELAY,
-            "still in commit phase"
+            SignatureAuth.verifyThreshold(_proposalId, _signers, _signatures, _signerNonces, _deadline, _threshold),
+            "insufficient signatures"
         );
+
+        // Increment nonces after successful verification
+        for (uint256 i = 0; i < _signers.length; i++) {
+            _nonces[_signers[i]]++;
+        }
 
         proposal.status = ProposalStatus.QUEUED;
 
@@ -94,37 +95,28 @@ contract ProposalMg is IProposalMg {
     }
 
     function cancelProposal(bytes32 _proposalId) external {
- 
         require(proposals[_proposalId].timeCreated != 0, "proposal does not exist");
 
         Proposal storage proposal = proposals[_proposalId];
 
         require(
-            proposal.status == ProposalStatus.PENDING ||
-            proposal.status == ProposalStatus.QUEUED,
+            proposal.status == ProposalStatus.PENDING || proposal.status == ProposalStatus.QUEUED,
             "proposal cannot be cancelled"
         );
 
-        require(
-            proposal.proposerAddr == msg.sender || _authorizedSigners[msg.sender],
-            "not authorized to cancel"
-        );
+        require(proposal.proposerAddr == msg.sender || _authorizedSigners[msg.sender], "not authorized to cancel");
 
         proposal.status = ProposalStatus.CANCELED;
 
         uint256 deposit = _deposits[_proposalId];
         delete _deposits[_proposalId];
-        (bool success, ) = payable(proposal.proposerAddr).call{value: deposit}("");
+        (bool success,) = payable(proposal.proposerAddr).call{value: deposit}("");
         require(success, "refund failed");
 
         emit ProposalCanceled(_proposalId);
     }
 
-    function getProposal(bytes32 _proposalId) 
-        external 
-        view 
-        returns (Proposal memory) 
-    {
+    function getProposal(bytes32 _proposalId) external view returns (Proposal memory) {
         require(proposals[_proposalId].timeCreated != 0, "proposal does not exist");
         return proposals[_proposalId];
     }

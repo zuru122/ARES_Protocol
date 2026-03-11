@@ -38,7 +38,15 @@ contract ProposalMg is IProposalMg {
         require(msg.value >= PROPOSAL_DEPOSIT, "insufficient deposit");
 
         bytes32 proposalId = keccak256(
-            abi.encodePacked(msg.sender, block.timestamp, _targetAddr, _data, _value, _description, _proposalType)
+            abi.encodePacked(
+                msg.sender,
+                block.timestamp,
+                _targetAddr,
+                _data,
+                _value,
+                _description,
+                _proposalType
+            )
         );
 
         require(proposals[proposalId].timeCreated == 0, "proposal already exists");
@@ -59,7 +67,14 @@ contract ProposalMg is IProposalMg {
 
         AttackGuards.recordSnapshot(_snapshot, proposalId);
 
-        emit ProposalCreated(proposalId, msg.sender, _targetAddr, _value, _description, _proposalType);
+        emit ProposalCreated(
+            proposalId,
+            msg.sender,
+            _targetAddr,
+            _value,
+            _description,
+            _proposalType
+        );
 
         return proposalId;
     }
@@ -77,14 +92,30 @@ contract ProposalMg is IProposalMg {
 
         require(proposal.status == ProposalStatus.PENDING, "proposal is not pending");
 
-        require(block.timestamp >= proposal.timeCreated + COMMIT_DELAY, "still in commit phase");
+        require(
+            block.timestamp >= proposal.timeCreated + COMMIT_DELAY,
+            "still in commit phase"
+        );
+
+        for (uint256 i = 0; i < _signers.length; i++) {
+            require(
+                _authorizedSigners[_signers[i]],
+                "insufficient signatures"  
+            );
+        }
 
         require(
-            SignatureAuth.verifyThreshold(_proposalId, _signers, _signatures, _signerNonces, _deadline, _threshold),
+            SignatureAuth.verifyThreshold(
+                _proposalId,
+                _signers,
+                _signatures,
+                _signerNonces,
+                _deadline,
+                _threshold
+            ),
             "insufficient signatures"
         );
 
-        // Increment nonces after successful verification
         for (uint256 i = 0; i < _signers.length; i++) {
             _nonces[_signers[i]]++;
         }
@@ -100,11 +131,15 @@ contract ProposalMg is IProposalMg {
         Proposal storage proposal = proposals[_proposalId];
 
         require(
-            proposal.status == ProposalStatus.PENDING || proposal.status == ProposalStatus.QUEUED,
+            proposal.status == ProposalStatus.PENDING ||
+            proposal.status == ProposalStatus.QUEUED,
             "proposal cannot be cancelled"
         );
 
-        require(proposal.proposerAddr == msg.sender || _authorizedSigners[msg.sender], "not authorized to cancel");
+        require(
+            proposal.proposerAddr == msg.sender || _authorizedSigners[msg.sender],
+            "not authorized to cancel"
+        );
 
         proposal.status = ProposalStatus.CANCELED;
 
@@ -116,7 +151,11 @@ contract ProposalMg is IProposalMg {
         emit ProposalCanceled(_proposalId);
     }
 
-    function getProposal(bytes32 _proposalId) external view returns (Proposal memory) {
+    function getProposal(bytes32 _proposalId)
+        external
+        view
+        returns (Proposal memory)
+    {
         require(proposals[_proposalId].timeCreated != 0, "proposal does not exist");
         return proposals[_proposalId];
     }

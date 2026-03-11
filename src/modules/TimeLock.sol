@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import {ITimeLock} from "../interfaces/ITimeLock.sol";
 import {IProposalMg} from "../interfaces/IProposalMg.sol";
+import {IAresProtocol} from "../interfaces/IAresProtocol.sol";
 import {AttackGuards} from "../libraries/AttackGuards.sol";
 
 contract Timelock is ITimeLock {
@@ -49,24 +50,28 @@ contract Timelock is ITimeLock {
         emit TimeLockQueued(_proposalId, block.timestamp + TIMELOCK_DELAY);
     }
 
-    function execute(bytes32 _proposalId) external nonReentrant {
-        TimelockEntry storage entry = _entries[_proposalId];
+function execute(bytes32 _proposalId) external nonReentrant {
+    TimelockEntry storage entry = _entries[_proposalId];
 
-        require(entry.executableAt != 0, "entry does not exist");
-        require(entry.status == TimeLockStatus.QUEUED, "not queued");
-        require(block.timestamp >= entry.executableAt, "delay not passed");
+    require(entry.executableAt != 0, "entry does not exist");
+    require(entry.status == TimeLockStatus.QUEUED, "not queued");
+    require(block.timestamp >= entry.executableAt, "delay not passed");
 
-        IProposalMg.Proposal memory proposal = _proposalMg.getProposal(_proposalId);
+    IProposalMg.Proposal memory proposal = _proposalMg.getProposal(_proposalId);
 
-        AttackGuards.enforceDailyLimit(_rateLimit, proposal.value);
+    AttackGuards.enforceDailyLimit(_rateLimit, proposal.value);
 
-        entry.status = TimeLockStatus.EXECUTED;
 
-        (bool success,) = _treasury.call{value: proposal.value}(proposal.data);
-        require(success, "execution failed");
+    entry.status = TimeLockStatus.EXECUTED;
 
-        emit TimeLockExecuted(_proposalId);
-    }
+    IAresProtocol(_treasury).executeProposal(
+        proposal.targetAddr,
+        proposal.value,
+        proposal.data
+    );
+
+    emit TimeLockExecuted(_proposalId);
+}
 
     function cancel(bytes32 _proposalId) external {
         TimelockEntry storage entry = _entries[_proposalId];

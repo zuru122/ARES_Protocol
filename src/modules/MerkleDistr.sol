@@ -23,7 +23,8 @@ contract MerkleDistributor is IDistributor {
         require(_verify(_proof, _merkleRootHash, leaf), "invalid proof");
 
         _claimed[_recipient] = true;
-        _token.transfer(_recipient, _amount);
+        bool success = _token.transfer(_recipient, _amount);
+        require(success, "transfer failed");
 
         emit Claimed(_recipient, _amount);
     }

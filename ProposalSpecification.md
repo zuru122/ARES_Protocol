@@ -30,7 +30,7 @@ Governance can still cancel it
 The community can observe and react incase any malacious movement is detected.
 
 #### Execution
-After 48 hours that's been set,  execute() function can be called. The system automatically checks:
+After 48 hours that's been set,  `execute()` function can be called. The system automatically checks:
 - entry exists?
 - status == QUEUED?
 - 48 hours passed?
@@ -47,4 +47,4 @@ An authorized signer, deposit slashed due to malicious act detected by the Gover
 Once `EXECUTED` it is permanent and cannot be reversed.
 
 #### Reward Distribution
-The reward list is compiled off-chain by the governance, whereby it hashes each contributo and their amount into a leaf, then combines all leaves into a Merkle tree. when claiming, each contributor only needs to submit therir address, amount and proof. The contract rebuilds the path and checks if it reaches the stored root. if it matches, tokens are sent and the address is permanently marked as claimed. It also ensure that an address can't claim twice.
+The reward list is compiled off-chain by the governance, whereby it hashes each contributo and their amount into a leaf, then combines all leaves into a Merkle tree. when claiming, each contributor only needs to submit their address, amount and proof. The contract rebuilds the path and checks if it matches the stored root. if it matches, tokens are sent and the address is permanently marked as claimed. It also ensure that an address can't claim twice.

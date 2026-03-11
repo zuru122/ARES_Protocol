@@ -22,7 +22,7 @@ Every signature includes a nonce. After use the nonce increments — old signatu
 _nonces[_signers[i]]++;
 ```
 
-### 3. Cross-Chain Replay
+#### 3. Cross-Chain Replay
 
 Valid signature from mainnet reused on another chain.
 
